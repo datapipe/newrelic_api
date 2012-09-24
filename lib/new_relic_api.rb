@@ -32,12 +32,12 @@ require 'active_resource_associations'
 module NewRelicApi
 
   class << self
-    attr_accessor :api_key, :ssl, :host, :port, :proxy
+    attr_accessor :api_key, :ssl, :host, :port, :proxy, :path
 
     # Resets the base path of all resources.  This should be called when overridding the newrelic.yml settings
     # using the ssl, host or port accessors.
     def reset!
-      @classes.each {|klass| klass.reset!} if @classes
+      @classes.each { |klass| klass.reset! } if @classes
       NewRelicApi::Account.site_url
     end
 
@@ -64,7 +64,8 @@ module NewRelicApi
       def site_url
         host = NewRelicApi.host || 'rpm.newrelic.com'
         port = NewRelicApi.port || 80
-        "#{port == 443 ? 'https' : 'http'}://#{host}:#{port}"
+        path = NewRelicApi.path || '/api/v1'
+        "#{port == 443 ? 'https' : 'http'}://#{host}:#{port}#{path}"
       end
 
       def reset!
@@ -79,25 +80,94 @@ module NewRelicApi
     self.site = self.site_url
     self.proxy = self.proxy
   end
-  ACCOUNT_RESOURCE_PATH = '/accounts/:account_id/' #:nodoc:
+  ACCOUNT_RESOURCE_PATH = "#{NewRelicApi.path || '/api/v1'}/accounts/:account_id/" #:nodoc:
+  ACCOUNT_SERVER_RESOURCE_PATH = ACCOUNT_RESOURCE_PATH + 'servers/:server_id/' #:nodoc:
   ACCOUNT_AGENT_RESOURCE_PATH = ACCOUNT_RESOURCE_PATH + 'agents/:agent_id/' #:nodoc:
   ACCOUNT_APPLICATION_RESOURCE_PATH = ACCOUNT_RESOURCE_PATH + 'applications/:application_id/' #:nodoc:
 
   module AccountResource #:nodoc:
     def account_id
-      prefix_options[:account_id]
+      @prefix_options[:account_id]
     end
+
     def account_query_params(extra_params = {})
       {:account_id => account_id}.merge(extra_params)
     end
 
-    def query_params#:nodoc:
+    def query_params #:nodoc:
       account_query_params
+    end
+  end
+
+  module ServerResource
+    include AccountResource
+
+    def server_id
+      @prefix_options[:server_id]
+    end
+
+    def server_query_params(extra_params = {})
+      {:server_id => server_id}.merge(account_query_params(extra_params))
+    end
+
+    def query_params #:nodoc:
+      server_query_params
     end
   end
 
   module AgentResource #:nodoc:
     include ActiveResourceAssociations
+  end
+
+  # https://staging.newrelic.com/api/v1/accounts/309396/agents/36425/metrics.xml
+  class Metric < BaseResource
+    include ServerResource
+
+    self.prefix = ACCOUNT_AGENT_RESOURCE_PATH
+  end
+
+  class Data < BaseResource
+    include ServerResource
+
+    self.prefix = ACCOUNT_AGENT_RESOURCE_PATH
+  end
+
+  class Server < BaseResource
+    include AccountResource
+
+    self.prefix = ACCOUNT_RESOURCE_PATH
+
+    def metrics
+      Metric.find(:all, :params => {:agent_id => self.id, :account_id => account_id})
+    end
+
+    def metrics_by_type
+      Hash[metrics.map{|m| [m.name, m.fields.map{|f| f.name}]}]
+    end
+
+    def metrics_by_field
+      fields = {}
+      metrics.each do |m|
+        m.fields.each do |f|
+          fields[f.name] ||= []
+          fields[f.name] << m.name
+        end
+      end
+      fields
+    end
+
+    def data(params = {})
+      params = {
+          :agent_id => self.id,
+          :account_id => account_id,
+          :begin => (params[:begin] || 1.week.ago).xmlschema,
+          :end => (params[:end] || Time.now).xmlschema,
+          :metrics => params[:metrics] || [],
+          :field => params[:field]
+      }
+      Data.find(:all, :params => params)
+    end
+
   end
 
   # An application has many:
@@ -111,18 +181,18 @@ module NewRelicApi
 
     self.prefix = ACCOUNT_RESOURCE_PATH
 
-    def query_params#:nodoc:
+    def query_params #:nodoc:
       account_query_params(:application_id => id)
     end
 
     class Agent < BaseResource
-      include AccountResource
-      include AgentResource
+      include NewRelicApi::AccountResource
+      include NewRelicApi::AgentResource
 
       self.prefix = ACCOUNT_APPLICATION_RESOURCE_PATH
 
-      def query_params#:nodoc:
-        super.merge(:application_id => cluster_agent_id)
+      def query_params #:nodoc:
+        super.merge(:agent_id => id)
       end
     end
 
@@ -150,13 +220,18 @@ module NewRelicApi
     def metric_value
       super.to_f
     end
+
     # Returns the color value for this threshold (Gray, Green, Yellow or Red).
     def color_value
       case threshold_value
-        when 3 then 'Red'
-        when 2 then 'Yellow'
-        when 1 then 'Green'
-      else 'Gray'
+        when 3 then
+          'Red'
+        when 2 then
+          'Yellow'
+        when 1 then
+          'Green'
+        else
+          'Gray'
       end
     end
 
@@ -178,6 +253,7 @@ module NewRelicApi
   class Account < BaseResource
     has_many :applications
     has_many :account_views
+    has_many :servers
 
     def query_params #:nodoc:
       {:account_id => id}
