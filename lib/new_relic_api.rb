@@ -264,6 +264,16 @@ module NewRelicApi
       find(type, :params => {:include => :application_health})
     end
 
+    def add_user(user)
+      a = AccountView.new(:user => user)
+      a.prefix_options[:account_id] = id
+      a.save
+    end
+
+    def users
+      account_views.map{|v| v.user}
+    end
+
     class AccountView < BaseResource
       self.prefix = ACCOUNT_RESOURCE_PATH
 
