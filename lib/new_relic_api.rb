@@ -288,6 +288,9 @@ module NewRelicApi
 
     class AccountUsage < BaseResource
     end
+
+    class PrimaryAdmin < BaseResource
+    end
   end
 
   # This model is used to mark production deployments in RPM
