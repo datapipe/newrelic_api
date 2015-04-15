@@ -7,10 +7,13 @@ class NewrelicApiTest < ActiveSupport::TestCase
 
   # Accounts may be identified either by their ID or by their license key.
   # This is the license key for the "gold" fixture in the New Relic fixture data.
-  LICENSE_KEY = '8022da2f6d143de67e056741262a054547b43479'
+ # LICENSE_KEY = '8022da2f6d143de67e056741262a054547b43479'
 
+  LICENSE_KEY = '3df063779926b1441c32ca37c693d9394f3d18c46d20a72'
+  ACCOUNT_ID = 54
   def setup
     NewRelicApi.api_key = LICENSE_KEY
+    NewRelicApi.account_id = ACCOUNT_ID
     if ENV['LOCAL']
       # Run your local instance in RAILS_ENV=test to load the fixture data
       NewRelicApi.host = 'localhost'

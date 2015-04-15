@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = "newrelic_api"
-  s.version = "1.2.5"
+  s.version = "2.0.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["New Relic"]
-  s.date = "2012-05-24"
+  s.date = "2015-04-01"
   s.description = "Use this gem to access New Relic application information via a REST api"
   s.email = "support@newrelic.com"
   s.extra_rdoc_files = [

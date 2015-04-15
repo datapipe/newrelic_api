@@ -32,7 +32,7 @@ require 'active_resource_associations'
 module NewRelicApi
 
   class << self
-    attr_accessor :api_key, :ssl, :host, :port, :proxy, :path
+    attr_accessor :api_key, :ssl, :host, :account_id, :port, :proxy, :path
 
     # Resets the base path of all resources.  This should be called when overridding the newrelic.yml settings
     # using the ssl, host or port accessors.
@@ -64,7 +64,7 @@ module NewRelicApi
       def site_url
         host = NewRelicApi.host || 'rpm.newrelic.com'
         port = NewRelicApi.port || 80
-        path = NewRelicApi.path || '/api/v1'
+        path = NewRelicApi.path || "/api/v2/partners/#{NewRelicApi.api_key}"
         "#{port == 443 ? 'https' : 'http'}://#{host}:#{port}#{path}"
       end
 
@@ -80,7 +80,8 @@ module NewRelicApi
     self.site = self.site_url
     self.proxy = self.proxy
   end
-  ACCOUNT_RESOURCE_PATH = "#{NewRelicApi.path || '/api/v1'}/accounts/:account_id/" #:nodoc:
+
+  ACCOUNT_RESOURCE_PATH = "#{NewRelicApi.path || '/api/v2/partners/'}/accounts/:account_id/" #:nodoc:
   ACCOUNT_SERVER_RESOURCE_PATH = ACCOUNT_RESOURCE_PATH + 'servers/:server_id/' #:nodoc:
   ACCOUNT_AGENT_RESOURCE_PATH = ACCOUNT_RESOURCE_PATH + 'agents/:agent_id/' #:nodoc:
   ACCOUNT_APPLICATION_RESOURCE_PATH = ACCOUNT_RESOURCE_PATH + 'applications/:application_id/' #:nodoc:
