@@ -10,6 +10,7 @@ group :development do
   gem 'rdiscount'
   gem "rdoc", ">= 3.3"
   gem 'logging'
+  gem 'pry-rails', '0.3.2'
 end
 
 # To use debugger (ruby-debug for Ruby 1.8.7+, ruby-debug19 for Ruby 1.9.2+)
