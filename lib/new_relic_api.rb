@@ -1,6 +1,10 @@
 require 'active_resource'
 require 'active_resource_associations'
 
+#This fixes an issue with keys having spaces in the reponse json
+# Particularity "primary admin"
+require 'core_extentions/active_resource/base'
+
 # = New Relic REST API
 #
 # This is a helper module for working with the New Relic API's XML interface.  Requires Rails 2.0 or later to be loaded.
@@ -48,6 +52,8 @@ module NewRelicApi
   end
 
   class BaseResource < ActiveResource::Base #:nodoc:
+    self.include_root_in_json = false
+
     include ActiveResourceAssociations
 
     class << self
@@ -76,7 +82,7 @@ module NewRelicApi
         NewRelicApi.proxy
       end
     end
-    self.format = ActiveResource::Formats::XmlFormat
+    self.format = ActiveResource::Formats::JsonFormat
     self.site = self.site_url
     self.proxy = self.proxy
   end
@@ -293,6 +299,7 @@ module NewRelicApi
     end
 
     class PrimaryAdmin < BaseResource
+      self.element_name = "primary admin"
     end
   end
 
