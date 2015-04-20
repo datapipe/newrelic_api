@@ -45,7 +45,6 @@ module NewRelicApi
       NewRelicApi::Account.site_url
     end
 
-
     def track_resource(klass) #:nodoc:
       (@classes ||= []) << klass
     end
@@ -263,6 +262,11 @@ module NewRelicApi
     has_many :applications
     has_many :account_views
     has_many :servers
+
+    # NewRelic returns a key name with a space in it so we are forced to do this:
+    def primary_admin
+      attributes['primary admin']
+    end
 
     def query_params #:nodoc:
       {:account_id => id}
